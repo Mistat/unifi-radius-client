@@ -1,17 +1,47 @@
 {
   "name": "unifi-radius-client",
   "version": "1.0.0",
+  "description": "TypeScript client library for managing RADIUS users via UniFi Cloud API",
   "type": "module",
   "main": "dist/client.js",
   "types": "dist/client.d.ts",
   "exports": {
-    ".": "./dist/client.js",
-    "./types": "./dist/types.js"
+    ".": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "unifi-radius": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "tsc",
     "cli": "tsx src/cli.ts"
   },
+  "keywords": [
+    "unifi",
+    "radius",
+    "ubiquiti",
+    "network",
+    "api-client"
+  ],
+  "author": "Mistat",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mistat/unifi-radius-client.git"
+  },
+  "homepage": "https://github.com/Mistat/unifi-radius-client#readme",
   "devDependencies": {
     "@types/node": "^25.5.0",
     "tsx": "^4.21.0",

@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 import { UnifiClient } from "./client.js";
 
 const USAGE = `UniFi RADIUSユーザー管理ツール
