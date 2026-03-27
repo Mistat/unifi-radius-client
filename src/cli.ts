@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { UnifiClient } from "./client.js";
 
-const USAGE = `UniFi RADIUSユーザー管理ツール
+const USAGE = `UniFi RADIUS / Hotspot 管理ツール
 
 使い方:
   npx tsx src/cli.ts list-hosts                        ホスト(コンソール)一覧
@@ -9,6 +9,11 @@ const USAGE = `UniFi RADIUSユーザー管理ツール
   npx tsx src/cli.ts create-user <名前> <パスワード>    RADIUSユーザー作成
   npx tsx src/cli.ts create-user <名前> <パスワード> <VLAN>  VLAN付きで作成
   npx tsx src/cli.ts list-profiles <サイトID>           RADIUSプロファイル一覧
+  npx tsx src/cli.ts list-vouchers                     バウチャー一覧
+  npx tsx src/cli.ts create-voucher <有効期間(分)> [枚数] [オプション]
+                                                       バウチャー作成
+    オプション: --quota <回数> --note <メモ> --up <kbps> --down <kbps> --bytes <MB>
+  npx tsx src/cli.ts delete-voucher <バウチャーID>      バウチャー削除
 
 環境変数:
   UNIFI_API_KEY   UI.com APIキー (必須)
@@ -98,6 +103,70 @@ async function main(): Promise<void> {
         ["ID", "名前", "オリジン"],
         profiles.map((p) => [p.id, p.name, p.metadata.origin])
       );
+      break;
+    }
+
+    case "list-vouchers": {
+      const vouchers = await client.listVouchers();
+      table(
+        ["ID", "コード", "有効期間(分)", "回数制限", "使用済", "ステータス", "メモ"],
+        vouchers.map((v) => [
+          v._id,
+          v.code,
+          String(v.duration),
+          v.quota === 0 ? "無制限" : String(v.quota),
+          String(v.used),
+          v.status,
+          v.note ?? "-",
+        ])
+      );
+      console.log(`\n合計: ${vouchers.length} バウチャー`);
+      break;
+    }
+
+    case "create-voucher": {
+      if (args.length < 1) {
+        console.error(
+          "使い方: create-voucher <有効期間(分)> [枚数] [--quota N] [--note テキスト] [--up kbps] [--down kbps] [--bytes MB]"
+        );
+        process.exit(1);
+      }
+      const expire = parseInt(args[0], 10);
+      const n = args[1] && !args[1].startsWith("--") ? parseInt(args[1], 10) : 1;
+
+      // オプション引数の解析
+      const optArgs = args.slice(args[1] && !args[1].startsWith("--") ? 2 : 1);
+      const opts: Record<string, string> = {};
+      for (let i = 0; i < optArgs.length; i += 2) {
+        if (optArgs[i].startsWith("--") && optArgs[i + 1]) {
+          opts[optArgs[i].slice(2)] = optArgs[i + 1];
+        }
+      }
+
+      const vouchers = await client.createVouchers({
+        expire,
+        n,
+        quota: opts.quota ? parseInt(opts.quota, 10) : undefined,
+        note: opts.note,
+        up: opts.up ? parseInt(opts.up, 10) : undefined,
+        down: opts.down ? parseInt(opts.down, 10) : undefined,
+        bytes: opts.bytes ? parseInt(opts.bytes, 10) : undefined,
+      });
+
+      console.log(`${vouchers.length} 件のバウチャーを作成しました:\n`);
+      for (const v of vouchers) {
+        console.log(`  コード: ${v.code}  (ID: ${v._id})`);
+      }
+      break;
+    }
+
+    case "delete-voucher": {
+      if (args.length < 1) {
+        console.error("使い方: delete-voucher <バウチャーID>");
+        process.exit(1);
+      }
+      await client.deleteVoucher(args[0]);
+      console.log("バウチャーを削除しました");
       break;
     }
 

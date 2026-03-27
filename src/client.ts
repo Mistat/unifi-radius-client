@@ -1,10 +1,12 @@
 import type {
+  CreateVoucherParams,
   Host,
   HostsResponse,
   LegacyResponse,
   PageResponse,
   RadiusAccount,
   RadiusProfile,
+  Voucher,
 } from "./types.js";
 
 const CLOUD_BASE_URL = "https://api.ui.com";
@@ -119,6 +121,69 @@ export class UnifiClient {
     }
     return data.data;
   }
+
+  // ── Hotspot バウチャー (従来API) ──
+
+  /** バウチャー一覧 */
+  async listVouchers(): Promise<Voucher[]> {
+    const path = `/proxy/network/api/s/${this.site}/stat/voucher`;
+    const data = await this.connectorRequest<LegacyResponse<Voucher>>(
+      "GET",
+      path
+    );
+    if (data.meta.rc !== "ok") {
+      throw new Error(`APIエラー: ${data.meta.msg}`);
+    }
+    return data.data;
+  }
+
+  /** バウチャー作成 */
+  async createVouchers(params: CreateVoucherParams): Promise<Voucher[]> {
+    const path = `/proxy/network/api/s/${this.site}/cmd/hotspot`;
+    const body: Record<string, unknown> = {
+      cmd: "create-voucher",
+      expire: params.expire,
+      n: params.n ?? 1,
+      quota: params.quota ?? 1,
+    };
+    if (params.note != null) body.note = params.note;
+    if (params.up != null) body.up = params.up;
+    if (params.down != null) body.down = params.down;
+    if (params.bytes != null) body.bytes = params.bytes;
+
+    const res = await this.connectorRequest<LegacyResponse<{ create_time: number }>>(
+      "POST",
+      path,
+      body
+    );
+    if (res.meta.rc !== "ok") {
+      throw new Error(`APIエラー: ${res.meta.msg}`);
+    }
+
+    // 作成APIはcreate_timeのみ返すため、バウチャー一覧から取得
+    const createTime = res.data[0]?.create_time;
+    if (createTime == null) {
+      throw new Error("バウチャーの作成時刻が取得できませんでした");
+    }
+
+    const all = await this.listVouchers();
+    return all.filter((v) => v.create_time === createTime);
+  }
+
+  /** バウチャー削除 */
+  async deleteVoucher(id: string): Promise<void> {
+    const path = `/proxy/network/api/s/${this.site}/cmd/hotspot`;
+    const data = await this.connectorRequest<LegacyResponse<unknown>>(
+      "POST",
+      path,
+      { cmd: "delete-voucher", _id: id }
+    );
+    if (data.meta.rc !== "ok") {
+      throw new Error(`APIエラー: ${data.meta.msg}`);
+    }
+  }
+
+  // ── RADIUS ユーザー (従来API) ──
 
   /** RADIUSユーザー作成 */
   async createRadiusUser(
