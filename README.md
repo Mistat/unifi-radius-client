@@ -31,6 +31,16 @@ npm run cli -- create-user <name> <password> <VLAN>
 
 # List RADIUS profiles
 npm run cli -- list-profiles <siteId>
+
+# List vouchers
+npm run cli -- list-vouchers
+
+# Create vouchers (expire in minutes, count optional)
+npm run cli -- create-voucher 1440 5 --note "Guest WiFi"
+npm run cli -- create-voucher 1440 1 --quota 1 --up 1024 --down 2048 --bytes 500
+
+# Delete a voucher
+npm run cli -- delete-voucher <voucherId>
 ```
 
 ## Library Usage
@@ -61,6 +71,20 @@ const hosts = await client.listHosts();
 
 // List RADIUS profiles
 const profiles = await client.listRadiusProfiles("site-uuid");
+
+// List vouchers
+const vouchers = await client.listVouchers();
+
+// Create vouchers (5 vouchers, 24h validity, single-use)
+const created = await client.createVouchers({
+  expire: 1440,
+  n: 5,
+  quota: 1,
+  note: "Guest WiFi",
+});
+
+// Delete a voucher
+await client.deleteVoucher("voucher-id");
 ```
 
 ## File Structure
@@ -77,6 +101,7 @@ src/
 - **List Hosts**: Site Manager API `GET /v1/hosts`
 - **RADIUS Profiles**: Network API v1 `GET /v1/sites/{siteId}/radius/profiles`
 - **RADIUS Users**: Legacy API `GET/POST /api/s/{site}/rest/account` (via Cloud Connector)
+- **Hotspot Vouchers**: Legacy API `GET /api/s/{site}/stat/voucher`, `POST /api/s/{site}/cmd/hotspot` (via Cloud Connector)
 
 All requests are proxied to the console through the Cloud Connector at `https://api.ui.com`.
 

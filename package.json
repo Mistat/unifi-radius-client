@@ -1,6 +1,6 @@
 {
   "name": "unifi-radius-client",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TypeScript client library for managing RADIUS users via UniFi Cloud API",
   "type": "module",
   "main": "dist/client.js",
